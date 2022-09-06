@@ -17,4 +17,6 @@ The dependecies between the other parameters were investigated are the results a
 ![number of nodes](https://user-images.githubusercontent.com/72938727/188739552-4f798239-d3f7-461e-bed8-808970f495af.png)
 ![max allowable deflection](https://user-images.githubusercontent.com/72938727/188739560-c3f26fda-bdd5-4624-8220-4500a981cfdd.png)
 ![buckling sf](https://user-images.githubusercontent.com/72938727/188739566-3af091a6-2e32-44b7-ad8e-d309389e96d6.png)
+# CAD
+![Static 3 side](https://user-images.githubusercontent.com/72938727/188749709-96e83d10-dfa2-49fc-a22e-4166cb972c78.png)
 
