@@ -1,0 +1,119 @@
+function [nd,Stress,Strain,Force,V,L] = TrussSolve(node,conn,A,E,BC,F,show)
+
+% Following are the sizes of the elemental and force matrix which depend on
+% the problem statement. It takes the input from the user and defines the
+% matrices
+nn=size(node,1);
+ndof=2*nn;      %Every node has 2 dofs.
+ne=size(conn,1);        %this defines the size of elemental matrix
+isol = 1:ndof;
+isol = isol(~ismember(isol,BC));
+
+K=zeros(ndof,ndof);     %Defines size of the global stiffness matrix 
+d=zeros(ndof,1);        %Defines size of the displacemetn matrix
+
+% Following loop is the real catch for this type of problems
+for e=1:ne
+    n1=conn(e,1);      % first node index for the element
+    n2=conn(e,2);      % second node index for the respective element
+    
+    % nodes coordiantes
+    x1=node(n1,1);
+    y1=node(n1,2);     
+    x2=node(n2,1);     
+    y2=node(n2,2);     
+    
+    L=sqrt(((x2-x1))^2+((y2-y1)^2)); % Length of the truss
+    
+    l=(x2-x1)/L;    % cos(alpha)
+    m=(y2-y1)/L;    % sin(alpha)
+    
+    % elemt matrix defined
+    ke=((A(e)*E)/L)*[l*l,m*l,-l*l,-m*l;m*l,m*m,-m*l,-m*m;-l*l,-m*l,l*l,m*l;-m*l,-m*m,m*l,m*m];
+    
+    % local -> global matrix
+    sctr=[2*n1-1, 2*n1, 2*n2-1, 2*n2];
+    K(sctr,sctr)=K(sctr,sctr)+ke;
+end
+
+% Calculatue displacements at each node
+d(isol)=K(isol,isol)\F(isol);
+nd = transpose(reshape(d,[2,nn]));
+
+% Calculate Reactions at the nodes
+f=K*d;
+Strain = zeros(ne,1);
+Stress = zeros(ne,1);
+Force = zeros(ne,1);
+
+L = zeros(ne,1);
+for e=1:ne
+    
+    n1=conn(e,1);
+    n2=conn(e,2);
+    
+    x1=node(n1,1);
+    y1=node(n1,2);
+    x2=node(n2,1);
+    y2=node(n2,2);
+    
+    L(e)=sqrt(((x2-x1))^2+((y2-y1)^2));
+    l=(x2-x1)/L(e);    
+    m=(y2-y1)/L(e);
+    
+    % By following the standars calculations the strains and stresses are
+    % calculated
+    B=(1/L(e))*[-l -m l m];
+    
+    % Again it is calculated by selecting the respective values from the
+    % globalized stiffness matrix
+    sctr=[2*n1-1 2*n1 2*n2-1 2*n2];
+    Strain(e)=B*d(sctr);
+    Stress(e)=E*Strain(e);
+    Force(e) = A(e)*Stress(e);
+    
+%     fprintf('\n%5d  %8.3e   %8.3e',e,Strain(e),Stress(e));
+end
+% fprintf('\n')
+
+if (show)
+    figure(1)
+    axis equal
+    hold on
+    magnitudeD = sqrt(nd(:,1).^2+nd(:,2).^2);
+    maxD = max(magnitudeD);
+    scaled_nd = nd.*0.02./maxD;
+    nodeD = node+scaled_nd;
+    StressN = abs(Stress./max(abs(Stress)));
+    scatter(nodeD(:,1),nodeD(:,2),'k')
+    for ie = 1:ne
+        color = double2color(StressN(ie));
+        plot(nodeD(conn(ie,:),1),nodeD(conn(ie,:),2),'color',color)
+    end
+
+    for ie = 1:ne
+        plot(node(conn(ie,:),1),node(conn(ie,:),2),'k')
+    end
+    
+    scaledF = F.*0.04./(max(abs(F)));
+    for iF = 1:ndof
+        if (iF~=0)
+            in = ceil(iF/2);
+            x = nodeD(in,1);
+            y = nodeD(in,2);
+            dx = 0;
+            dy = 0;
+            if (rem(iF,2) == 1)
+                dx = scaledF(iF);
+            else
+                dy = scaledF(iF);
+            end
+%             annotation('arrow', [x,x+dx], [y, y+dy]);
+            quiver(x,y,dx,dy,0)
+        end
+    end
+end
+
+V = sum(A.*L);
+
+end
